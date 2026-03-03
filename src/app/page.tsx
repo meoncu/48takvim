@@ -275,14 +275,21 @@ export default function Home() {
     setMonth((prev) => addMonths(prev, direction));
   };
 
-  const handleDaySelect = (dateKey: string, noteCount: number) => {
+  const handleDaySelect = (dateKey: string, noteCount: number, specialLabel?: string) => {
     if (selectedDate === dateKey && noteCount === 0) {
       setSelectedDate(dateKey);
+      if (specialLabel) {
+        setFeedback(`Özel gün: ${specialLabel}`);
+        return;
+      }
       openCreateModal();
       return;
     }
 
     setSelectedDate(dateKey);
+    if (specialLabel) {
+      setFeedback(`Özel gün: ${specialLabel}`);
+    }
   };
 
   useEffect(() => {
@@ -312,21 +319,34 @@ export default function Home() {
         const eventAt = new Date(`${note.date}T${note.time}:00`);
         if (Number.isNaN(eventAt.getTime())) continue;
 
+        const whenLabel = `${note.date} ${note.time}${note.endTime ? `-${note.endTime}` : ''}`;
+
+        // 1 gün önce (mevcut davranış)
         const reminderAt = addDays(eventAt, -reminderDaysBefore);
         const reminderWindowEnd = new Date(reminderAt.getTime() + 60 * 60 * 1000);
+        if (now >= reminderAt && now <= reminderWindowEnd) {
+          const reminderKey = `takvim-reminder:before:${uid}:${note.id}:${note.date}`;
+          if (!window.localStorage.getItem(reminderKey)) {
+            new Notification('48Takvim Hatırlatma (1 gün önce)', {
+              body: `${note.title} • ${whenLabel}`,
+              tag: reminderKey,
+            });
+            window.localStorage.setItem(reminderKey, String(Date.now()));
+          }
+        }
 
-        if (now < reminderAt || now > reminderWindowEnd) continue;
-
-        const reminderKey = `takvim-reminder:${uid}:${note.id}:${note.date}`;
-        if (window.localStorage.getItem(reminderKey)) continue;
-
-        const whenLabel = `${note.date} ${note.time}${note.endTime ? `-${note.endTime}` : ''}`;
-        new Notification('48Takvim Hatırlatma', {
-          body: `${note.title} • ${whenLabel}`,
-          tag: reminderKey,
-        });
-
-        window.localStorage.setItem(reminderKey, String(Date.now()));
+        // Etkinlik anı (aynı gün, aynı dakika)
+        const dueWindowEnd = new Date(eventAt.getTime() + 60 * 1000);
+        if (now >= eventAt && now <= dueWindowEnd) {
+          const dueKey = `takvim-reminder:due:${uid}:${note.id}:${note.date}`;
+          if (!window.localStorage.getItem(dueKey)) {
+            new Notification('48Takvim Hatırlatma (şimdi)', {
+              body: `${note.title} şimdi başlıyor • ${whenLabel}`,
+              tag: dueKey,
+            });
+            window.localStorage.setItem(dueKey, String(Date.now()));
+          }
+        }
       }
     };
 
@@ -575,7 +595,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
-            className="fixed bottom-4 left-3 right-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-xl sm:left-auto sm:right-4"
+            className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-3 right-3 z-30 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-xl sm:bottom-4 sm:left-auto sm:right-4"
           >
             {feedback}
           </motion.div>

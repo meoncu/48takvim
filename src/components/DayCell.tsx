@@ -7,7 +7,7 @@ type DayCellProps = {
   dateKey: string;
   noteCount: number;
   selected: boolean;
-  onSelect: (dateKey: string, noteCount: number) => void;
+  onSelect: (dateKey: string, noteCount: number, specialLabel?: string) => void;
   noteToneClass?: string;
   specialKind?: SpecialKind;
   specialLabel?: string;
@@ -45,7 +45,7 @@ export function DayCell({ dayNumber, dayLabel, weekdayIndex, dateKey, noteCount,
   return (
     <button
       type="button"
-      onClick={() => onSelect(dateKey, noteCount)}
+      onClick={() => onSelect(dateKey, noteCount, specialLabel)}
       className={[
         'relative flex min-h-11 w-full items-center justify-center rounded-xl border px-1 py-1.5 text-center text-sm font-semibold transition active:scale-[0.99]',
         dayTone(noteCount, selected, noteToneClass, specialKind),

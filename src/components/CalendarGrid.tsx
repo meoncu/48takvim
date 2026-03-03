@@ -12,7 +12,7 @@ type CalendarGridProps = {
   showYearNotes: boolean;
   showSpecialDays: boolean;
   selectedDate: string | null;
-  onSelectDate: (date: string, noteCount: number) => void;
+  onSelectDate: (date: string, noteCount: number, specialLabel?: string) => void;
 };
 
 const monthToneClasses = [
