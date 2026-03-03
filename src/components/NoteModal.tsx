@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { Note } from '@/types/note';
+import type { Note, NoteInput } from '@/types/note';
 
 type NoteModalProps = {
   open: boolean;
   date: string | null;
   editingNote: Note | null;
   onClose: () => void;
-  onSave: (input: { date: string; time: string; title: string; content: string; tags: string[] }) => Promise<void>;
+  onSave: (input: NoteInput) => Promise<void>;
 };
 
 export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModalProps) {
@@ -17,6 +17,10 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tagsText, setTagsText] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
+  const [repeatWeekday, setRepeatWeekday] = useState<number>(6);
+  const [remindOneDayBefore, setRemindOneDayBefore] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -27,14 +31,24 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
       setTitle(editingNote.title);
       setContent(editingNote.content);
       setTagsText(editingNote.tags.join(', '));
+      setEndTime(editingNote.endTime ?? '');
+      setRepeatWeekly(editingNote.recurrence?.type === 'weekly');
+      setRepeatWeekday(editingNote.recurrence?.type === 'weekly' ? editingNote.recurrence.weekday : new Date(`${editingNote.date}T00:00:00`).getDay());
+      setRemindOneDayBefore((editingNote.reminderDaysBefore ?? 0) > 0);
       return;
     }
 
+    const selectedWeekday = date ? new Date(`${date}T00:00:00`).getDay() : 6;
+
     setTime('09:00');
+    setEndTime('');
     setTitle('');
     setContent('');
     setTagsText('');
-  }, [open, editingNote]);
+    setRepeatWeekly(false);
+    setRepeatWeekday(selectedWeekday);
+    setRemindOneDayBefore(true);
+  }, [open, editingNote, date]);
 
   const tags = useMemo(
     () =>
@@ -70,7 +84,16 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
                 event.preventDefault();
                 setSaving(true);
                 try {
-                  await onSave({ date, time, title: title.trim(), content: content.trim(), tags });
+                  await onSave({
+                    date,
+                    time,
+                    endTime: endTime.trim() ? endTime : undefined,
+                    title: title.trim(),
+                    content: content.trim(),
+                    tags,
+                    recurrence: repeatWeekly ? { type: 'weekly', weekday: repeatWeekday } : { type: 'none' },
+                    reminderDaysBefore: remindOneDayBefore ? 1 : 0,
+                  });
                   onClose();
                 } finally {
                   setSaving(false);
@@ -82,14 +105,57 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
                 <input value={date} readOnly className="h-11 w-full rounded-2xl border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700 dark:bg-zinc-800" />
               </div>
               <div>
-                <label className="mb-1 block text-sm">Saat</label>
-                <input
-                  type="time"
-                  required
-                  value={time}
-                  onChange={(event) => setTime(event.target.value)}
-                  className="h-11 w-full rounded-2xl border border-zinc-300 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                />
+                <label className="mb-1 block text-sm">Tekrar</label>
+                <div className="rounded-2xl border border-zinc-300 p-3 dark:border-zinc-700">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={repeatWeekly}
+                      onChange={(event) => setRepeatWeekly(event.target.checked)}
+                    />
+                    Her hafta tekrarla
+                  </label>
+
+                  {repeatWeekly ? (
+                    <div className="mt-2">
+                      <label className="mb-1 block text-xs text-zinc-500">Haftanın günü</label>
+                      <select
+                        value={repeatWeekday}
+                        onChange={(event) => setRepeatWeekday(Number(event.target.value))}
+                        className="h-10 w-full rounded-xl border border-zinc-300 px-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                      >
+                        <option value={1}>Pazartesi</option>
+                        <option value={2}>Salı</option>
+                        <option value={3}>Çarşamba</option>
+                        <option value={4}>Perşembe</option>
+                        <option value={5}>Cuma</option>
+                        <option value={6}>Cumartesi</option>
+                        <option value={0}>Pazar</option>
+                      </select>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="mb-1 block text-sm">Başlangıç</label>
+                  <input
+                    type="time"
+                    required
+                    value={time}
+                    onChange={(event) => setTime(event.target.value)}
+                    className="h-11 w-full rounded-2xl border border-zinc-300 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm">Bitiş (opsiyonel)</label>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(event) => setEndTime(event.target.value)}
+                    className="h-11 w-full rounded-2xl border border-zinc-300 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                  />
+                </div>
               </div>
               <div>
                 <label className="mb-1 block text-sm">Başlık</label>
@@ -119,6 +185,18 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
                 />
               </div>
 
+              <div>
+                <label className="mb-1 block text-sm">Hatırlatma</label>
+                <label className="flex min-h-11 items-center gap-2 rounded-2xl border border-zinc-300 px-3 text-sm dark:border-zinc-700">
+                  <input
+                    type="checkbox"
+                    checked={remindOneDayBefore}
+                    onChange={(event) => setRemindOneDayBefore(event.target.checked)}
+                  />
+                  1 gün önce tarayıcı bildirimi gönder
+                </label>
+              </div>
+
               <div className="mt-5 flex justify-end gap-2">
                 <button type="button" onClick={onClose} className="min-h-11 rounded-2xl border border-zinc-300 px-4 text-sm font-semibold dark:border-zinc-700">
                   Vazgeç
@@ -128,7 +206,7 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
                   disabled={saving || title.trim().length === 0}
                   className="min-h-11 rounded-2xl bg-gradient-to-r from-blue-600 to-violet-600 px-4 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 disabled:opacity-60"
                 >
-                  {saving ? 'Kaydediliyor...' : 'Kaydet'}
+                  {saving ? 'Kaydediliyor...' : editingNote ? 'Güncelle' : 'Kaydet'}
                 </button>
               </div>
             </form>

@@ -1,6 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180" role="img" aria-label="48Takvim apple touch icon">
-  <rect width="180" height="180" rx="40" fill="#0f172a"/>
-  <rect x="26" y="30" width="128" height="120" rx="24" fill="#2563eb"/>
-  <rect x="26" y="52" width="128" height="14" fill="#0f172a" opacity="0.25"/>
-  <text x="90" y="118" text-anchor="middle" font-size="58" font-family="Arial, sans-serif" font-weight="700" fill="#fff">48</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180" role="img" aria-label="48Takvim Apple Touch Icon">
+  <defs>
+    <linearGradient id="g180" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="180" height="180" rx="42" fill="#0b1226"/>
+  <rect x="24" y="28" width="132" height="124" rx="24" fill="url(#g180)"/>
+  <rect x="24" y="50" width="132" height="14" fill="#0b1226" opacity="0.2"/>
+  <circle cx="49" cy="40" r="5" fill="#ffffff" opacity="0.9"/>
+  <circle cx="131" cy="40" r="5" fill="#ffffff" opacity="0.9"/>
+  <text x="90" y="108" text-anchor="middle" font-size="54" font-family="Inter, Arial, sans-serif" font-weight="800" fill="#ffffff">48</text>
+  <path d="M56 125l16 16 50-50" fill="none" stroke="#ecfeff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
 </svg>

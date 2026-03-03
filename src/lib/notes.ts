@@ -12,7 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { monthBounds, yearBounds } from '@/lib/date';
-import type { Note, NoteInput } from '@/types/note';
+import type { Note, NoteInput, Recurrence } from '@/types/note';
 
 function userNotesCollection(uid: string) {
   return collection(db, 'users', uid, 'notes');
@@ -29,15 +29,25 @@ export function subscribeMonthNotes(uid: string, month: Date, onData: (notes: No
       const notes: Note[] = snapshot.docs
         .map((snapshotDoc) => {
           const data = snapshotDoc.data() as Omit<Note, 'id'>;
+          const recurrenceRaw = data.recurrence as Recurrence | undefined;
+          const recurrence: Recurrence | undefined = recurrenceRaw?.type === 'weekly'
+            ? { type: 'weekly', weekday: recurrenceRaw.weekday }
+            : recurrenceRaw?.type === 'none'
+              ? { type: 'none' }
+              : undefined;
 
           return {
             id: snapshotDoc.id,
             date: data.date,
             time: data.time,
+            endTime: data.endTime,
             title: data.title,
             content: data.content ?? '',
             tags: Array.isArray(data.tags) ? data.tags : [],
             tz: data.tz,
+            recurrence,
+            recurrenceExceptions: Array.isArray(data.recurrenceExceptions) ? data.recurrenceExceptions.filter((v): v is string => typeof v === 'string') : [],
+            reminderDaysBefore: typeof data.reminderDaysBefore === 'number' ? data.reminderDaysBefore : 0,
           };
         })
         .sort((a, b) => {
@@ -63,15 +73,67 @@ export function subscribeYearNotes(uid: string, yearDate: Date, onData: (notes: 
       const notes: Note[] = snapshot.docs
         .map((snapshotDoc) => {
           const data = snapshotDoc.data() as Omit<Note, 'id'>;
+          const recurrenceRaw = data.recurrence as Recurrence | undefined;
+          const recurrence: Recurrence | undefined = recurrenceRaw?.type === 'weekly'
+            ? { type: 'weekly', weekday: recurrenceRaw.weekday }
+            : recurrenceRaw?.type === 'none'
+              ? { type: 'none' }
+              : undefined;
 
           return {
             id: snapshotDoc.id,
             date: data.date,
             time: data.time,
+            endTime: data.endTime,
             title: data.title,
             content: data.content ?? '',
             tags: Array.isArray(data.tags) ? data.tags : [],
             tz: data.tz,
+            recurrence,
+            recurrenceExceptions: Array.isArray(data.recurrenceExceptions) ? data.recurrenceExceptions.filter((v): v is string => typeof v === 'string') : [],
+            reminderDaysBefore: typeof data.reminderDaysBefore === 'number' ? data.reminderDaysBefore : 0,
+          };
+        })
+        .sort((a, b) => {
+          const dateCompare = a.date.localeCompare(b.date);
+          if (dateCompare !== 0) return dateCompare;
+          return a.time.localeCompare(b.time);
+        });
+
+      onData(notes);
+    },
+    (err) => onError(err)
+  );
+}
+
+export function subscribeAllNotes(uid: string, onData: (notes: Note[]) => void, onError: (error: Error) => void) {
+  const q = query(userNotesCollection(uid), orderBy('date', 'asc'));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const notes: Note[] = snapshot.docs
+        .map((snapshotDoc) => {
+          const data = snapshotDoc.data() as Omit<Note, 'id'>;
+          const recurrenceRaw = data.recurrence as Recurrence | undefined;
+          const recurrence: Recurrence | undefined = recurrenceRaw?.type === 'weekly'
+            ? { type: 'weekly', weekday: recurrenceRaw.weekday }
+            : recurrenceRaw?.type === 'none'
+              ? { type: 'none' }
+              : undefined;
+
+          return {
+            id: snapshotDoc.id,
+            date: data.date,
+            time: data.time,
+            endTime: data.endTime,
+            title: data.title,
+            content: data.content ?? '',
+            tags: Array.isArray(data.tags) ? data.tags : [],
+            tz: data.tz,
+            recurrence,
+            recurrenceExceptions: Array.isArray(data.recurrenceExceptions) ? data.recurrenceExceptions.filter((v): v is string => typeof v === 'string') : [],
+            reminderDaysBefore: typeof data.reminderDaysBefore === 'number' ? data.reminderDaysBefore : 0,
           };
         })
         .sort((a, b) => {

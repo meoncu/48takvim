@@ -40,11 +40,7 @@ export function DayDetailPanel({ date, notes, onAdd, onEdit, onDelete }: DayDeta
               transition={{ type: 'spring', stiffness: 420, damping: 28 }}
               className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
             >
-              <button
-                type="button"
-                onClick={() => onEdit(note)}
-                className="w-full text-left"
-              >
+              <div className="w-full text-left">
                 <div className="mb-1 flex items-center justify-between gap-2">
                   <strong className="line-clamp-1 text-[15px]">{note.title}</strong>
                   <span className="rounded-lg bg-white px-2 py-1 text-xs font-semibold text-slate-600">{note.time}</span>
@@ -59,8 +55,15 @@ export function DayDetailPanel({ date, notes, onAdd, onEdit, onDelete }: DayDeta
                     ))}
                   </div>
                 ) : null}
-              </button>
-              <div className="mt-3 flex justify-end">
+              </div>
+              <div className="mt-3 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => onEdit(note)}
+                  className="min-h-9 rounded-xl border border-indigo-200 px-3 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50"
+                >
+                  Düzenle
+                </button>
                 <button
                   type="button"
                   onClick={() => void onDelete(note)}
