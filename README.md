@@ -1,36 +1,110 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 48Takvim
 
-## Getting Started
+Modern, cross-platform takvim/not uygulaması. Next.js App Router + TypeScript + Firebase (Auth/Firestore) + PWA.
 
-First, run the development server:
+## Özellikler
+
+- Google ile giriş/çıkış (`[Firebase Auth](src/lib/firebase.ts)`)
+- Kullanıcıya özel notlar (`[users/{uid}/notes](firestore.rules)` izolasyonu)
+- Filtreli günler görünümü (sadece not olan günler)
+- Toggle ile tam ay görünümü
+- Gün detay paneli + not ekleme/düzenleme/silme
+- Light/Dark tema (`[ThemeToggle](src/components/ThemeToggle.tsx)`)
+- PWA kurulum butonu (`[InstallPWAButton](src/components/InstallPWAButton.tsx)`)
+- Hızlı tarih odaklama (YYYY-MM-DD + Enter)
+
+## Teknoloji
+
+- Next.js 16 (App Router)
+- TypeScript
+- Tailwind CSS v4
+- Framer Motion
+- Firebase Firestore + Auth
+
+## Lokal Kurulum
+
+1. Bağımlılıkları kur:
+
+```bash
+npm install
+```
+
+2. Ortam değişkenlerini hazırla:
+
+- `[.env.example](.env.example)` dosyasını `[.env.local](.env.local)` olarak kopyala.
+- Firebase Console’dan gerçek değerleri doldur.
+
+3. Geliştirme sunucusunu başlat (port **5179**):
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Tarayıcıda aç:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `http://localhost:5179`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Firebase Kurulumu
 
-## Learn More
+1. Firebase projesi oluştur.
+2. Authentication > Sign-in method > Google sağlayıcısını aç.
+3. Firestore Database oluştur (production mode önerilir).
+4. Kuralları `[firestore.rules](firestore.rules)` ile güncelle.
+5. Firebase Web App oluşturup env değerlerini al.
 
-To learn more about Next.js, take a look at the following resources:
+### Firestore Veri Modeli
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `users/{uid}`
+- `users/{uid}/notes/{noteId}`
+  - `date: string (YYYY-MM-DD)`
+  - `time: string (HH:mm)`
+  - `title: string`
+  - `content: string`
+  - `tags: string[]`
+  - `createdAt, updatedAt: serverTimestamp`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## PWA
 
-## Deploy on Vercel
+- Manifest: `[src/app/manifest.ts](src/app/manifest.ts)`
+- Service worker: `[public/sw.js](public/sw.js)`
+- Iconlar: `[public/icons](public/icons)`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+> Not: Bu repoda ikonlar SVG placeholder’dır. İsterseniz CI/CD veya build adımında PNG (`192x192`, `512x512`, `maskable`, `apple-touch-icon`) çıktısı üretip manifest’e ekleyebilirsiniz.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Build / Production
+
+```bash
+npm run lint
+npm run build
+npm run start
+```
+
+## Vercel Deploy
+
+1. Repoyu GitHub’a push et.
+2. Vercel’de “New Project” ile repo bağla.
+3. Environment Variables bölümüne `[.env.local](.env.local)` içeriğini ekle:
+   - `NEXT_PUBLIC_FIREBASE_API_KEY`
+   - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+   - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+   - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+   - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+   - `NEXT_PUBLIC_FIREBASE_APP_ID`
+4. Deploy et.
+5. Her push sonrası Vercel CI/CD otomatik tetiklenir.
+
+## Firestore Rule Testleri
+
+- Senaryolar: `[docs/firestore-rules-tests.md](docs/firestore-rules-tests.md)`
+
+## Kabul Kriteri Kontrol Listesi
+
+- [x] Google login/logout
+- [x] Kullanıcı izolasyonu (rules)
+- [x] İlk açılışta filtreli günler
+- [x] Toggle ile tüm günler
+- [x] Çoklu notta farklı görsel vurgu
+- [x] Gün tıklayınca saat sıralı liste
+- [x] Not detayını modalde açma/düzenleme
+- [x] PWA install butonu (destekli cihazlarda)
+- [x] Light default + kalıcı tema
