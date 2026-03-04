@@ -18,22 +18,26 @@ const NATIONAL_DAYS: Record<string, string> = {
 };
 
 function getIslamicMonthDay(date: Date): { month: number; day: number } | null {
-  const parts = new Intl.DateTimeFormat('en-US-u-ca-islamic', {
-    month: 'numeric',
-    day: 'numeric',
-  }).formatToParts(date);
+  try {
+    const parts = new Intl.DateTimeFormat('en-US-u-ca-islamic', {
+      month: 'numeric',
+      day: 'numeric',
+    }).formatToParts(date);
 
-  const monthPart = parts.find((part) => part.type === 'month')?.value;
-  const dayPart = parts.find((part) => part.type === 'day')?.value;
+    const monthPart = parts.find((part) => part.type === 'month')?.value;
+    const dayPart = parts.find((part) => part.type === 'day')?.value;
 
-  if (!monthPart || !dayPart) return null;
+    if (!monthPart || !dayPart) return null;
 
-  const month = Number(monthPart);
-  const day = Number(dayPart);
+    const month = Number(monthPart);
+    const day = Number(dayPart);
 
-  if (!Number.isFinite(month) || !Number.isFinite(day)) return null;
+    if (!Number.isFinite(month) || !Number.isFinite(day)) return null;
 
-  return { month, day };
+    return { month, day };
+  } catch {
+    return null;
+  }
 }
 
 function specialForDate(date: Date): SpecialDayInfo | null {

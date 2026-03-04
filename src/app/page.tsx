@@ -106,14 +106,16 @@ export default function Home() {
     []
   );
 
-  const todayHicri = useMemo(
-    () =>
-      new Intl.DateTimeFormat('tr-TR-u-ca-islamic', {
+  const todayHicri = useMemo(() => {
+    try {
+      return new Intl.DateTimeFormat('tr-TR-u-ca-islamic', {
         day: 'numeric',
         month: 'long',
-      }).format(new Date()),
-    []
-  );
+      }).format(new Date());
+    } catch {
+      return 'Hicri tarih desteklenmiyor';
+    }
+  }, []);
 
   useEffect(() => {
     const unsubscribe = subscribeAuthState((user) => {
