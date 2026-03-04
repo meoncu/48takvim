@@ -12,9 +12,10 @@ import { MonthYearPicker } from '@/components/MonthYearPicker';
 import { NoteModal } from '@/components/NoteModal';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { buildMonthOptions, toDateKey } from '@/lib/date';
-import { createNote, removeNote, subscribeAllNotes, subscribeMonthNotes, subscribeYearNotes, updateNote } from '@/lib/notes';
+import { createNote, removeNote, subscribeAllNotes, updateNote } from '@/lib/notes';
 import { signInWithGoogle, signOutUser, subscribeAuthState } from '@/lib/firebase';
 import { buildSpecialDays } from '@/lib/specialDays';
+import { setupFcmForUser } from '@/lib/fcm';
 import type { Note } from '@/types/note';
 
 function groupNotesByDate(notes: Note[]) {
@@ -86,7 +87,6 @@ export default function Home() {
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [notes, setNotes] = useState<Note[]>([]);
   const [allNotes, setAllNotes] = useState<Note[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(toDateKey(new Date()));
 
@@ -118,9 +118,6 @@ export default function Home() {
   useEffect(() => {
     const unsubscribe = subscribeAuthState((user) => {
       setUid(user?.uid ?? null);
-      if (!user) {
-        setNotes([]);
-      }
       setLoadingAuth(false);
     });
 
@@ -137,39 +134,6 @@ export default function Home() {
   useEffect(() => {
     if (!uid) return;
 
-    if (searchQuery.trim().length > 0) {
-      const unsubscribe = subscribeAllNotes(
-        uid,
-        (items) => {
-          setNotes(items);
-        },
-        () => {
-          setFeedback('Arama notları alınırken hata oluştu.');
-        }
-      );
-
-      return unsubscribe;
-    }
-
-    const subscribe = showYearNotes ? subscribeYearNotes : subscribeMonthNotes;
-
-    const unsubscribe = subscribe(
-      uid,
-      month,
-      (items) => {
-        setNotes(items);
-      },
-      () => {
-        setFeedback(showYearNotes ? 'Yıllık notlar alınırken hata oluştu.' : 'Notlar alınırken hata oluştu.');
-      }
-    );
-
-    return unsubscribe;
-  }, [uid, month, showYearNotes, searchQuery]);
-
-  useEffect(() => {
-    if (!uid) return;
-
     const unsubscribe = subscribeAllNotes(
       uid,
       (items) => {
@@ -181,6 +145,47 @@ export default function Home() {
     );
 
     return unsubscribe;
+  }, [uid]);
+
+  useEffect(() => {
+    if (!uid) return;
+
+    let cancelled = false;
+
+    const run = async () => {
+      const result = await setupFcmForUser(uid);
+      if (cancelled) return;
+
+      if (result.status === 'granted' && result.token) {
+        setFeedback(`FCM hazır. Token kaydedildi: ${result.token.slice(0, 14)}...`);
+        return;
+      }
+
+      if (result.status === 'denied') {
+        setFeedback('Bildirim izni reddedildi. Ayarlardan açabilirsiniz.');
+        return;
+      }
+
+      if (result.status === 'missing-config') {
+        setFeedback('FCM VAPID anahtarı eksik. .env.local güncelleyin.');
+        return;
+      }
+
+      if (result.status === 'unsupported') {
+        setFeedback('Bu cihaz/tarayıcı FCM push desteklemiyor.');
+        return;
+      }
+
+      if (result.status === 'error') {
+        setFeedback(`FCM kurulumu başarısız: ${result.errorMessage ?? 'Bilinmeyen hata'}`);
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
   }, [uid]);
 
   const viewRange = useMemo(() => {

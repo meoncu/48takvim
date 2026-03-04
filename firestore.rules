@@ -38,6 +38,10 @@ service cloud.firestore {
                       request.resource.data.createdAt == resource.data.createdAt;
         allow delete: if isOwner(userId);
       }
+
+      match /fcmTokens/{tokenId} {
+        allow read, create, update, delete: if isOwner(userId);
+      }
     }
   }
 }

@@ -71,6 +71,39 @@ npm run dev
 
 > Not: Bu repoda ikonlar SVG placeholder’dır. İsterseniz CI/CD veya build adımında PNG (`192x192`, `512x512`, `maskable`, `apple-touch-icon`) çıktısı üretip manifest’e ekleyebilirsiniz.
 
+## Arka Plan Bildirimleri (Uygulama Kapalıyken)
+
+Bu repo artık zamanlanmış push için Firebase Functions içerir:
+
+- Konfig: `[firebase.json](firebase.json)`
+- Functions paket: `[functions/package.json](functions/package.json)`
+- Scheduler fonksiyonu: `[sendScheduledNoteNotifications](functions/src/index.ts:139)`
+
+Fonksiyon davranışı:
+
+- Her dakika çalışır (`Europe/Istanbul` timezone).
+- `[users/{uid}/notes](firestore.rules)` altındaki notları tarar.
+- Not saati geldiğinde “şimdi” bildirimi yollar.
+- `reminderDaysBefore > 0` notlar için “X gün önce” bildirimi yollar.
+- `[users/{uid}/fcmTokens/{token}](firestore.rules)` tokenlarına multicast gönderir.
+- Geçersiz tokenları otomatik temizler.
+- Tekrarlı gönderimi önlemek için `[users/{uid}/notificationLogs/{eventId}]` kaydı tutar.
+
+Kurulum / deploy:
+
+1. Firebase CLI kurun ve giriş yapın.
+2. Proje bağlayın:
+   - `firebase use <PROJECT_ID>`
+3. Functions bağımlılıklarını kurup derleyin:
+   - `cd functions && npm install && npm run build`
+4. Deploy edin:
+   - `firebase deploy --only functions`
+
+Önemli notlar:
+
+- Tarayıcıdan token alımı için `NEXT_PUBLIC_FIREBASE_VAPID_KEY` zorunludur (`[setupFcmForUser()](src/lib/fcm.ts:22)`).
+- Web push’in cihazda görünmesi için PWA izinleri açık olmalıdır.
+
 ## Build / Production
 
 ```bash
