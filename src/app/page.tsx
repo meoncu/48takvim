@@ -593,14 +593,20 @@ export default function Home() {
         editingNote={editingNote}
         onClose={() => setModalOpen(false)}
         onSave={async (input) => {
-          if (editingNote) {
-            await updateNote(uid, editingNote.id, input);
-            setFeedback('Not güncellendi.');
-            return;
-          }
+          try {
+            if (editingNote) {
+              await updateNote(uid, editingNote.id, input);
+              setFeedback('Not güncellendi.');
+              return;
+            }
 
-          await createNote(uid, input);
-          setFeedback('Not eklendi.');
+            await createNote(uid, input);
+            setFeedback('Not eklendi.');
+          } catch (error) {
+            console.error('Kaydetme hatası:', error);
+            setFeedback('Kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.');
+            throw error; // Modal'ın kapanmaması için hatayı tekrar fırlatıyoruz
+          }
         }}
       />
 

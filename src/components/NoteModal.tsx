@@ -23,6 +23,15 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
   const [remindOneDayBefore, setRemindOneDayBefore] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Zaman hesaplama yardımcısı
+  const calculateDefaultEndTime = (startTime: string) => {
+    const [h, m] = startTime.split(':').map(Number);
+    const totalMinutes = h * 60 + m + 30;
+    const newH = Math.floor(totalMinutes / 60) % 24;
+    const newM = totalMinutes % 60;
+    return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+  };
+
   useEffect(() => {
     if (!open) return;
 
@@ -39,9 +48,10 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
     }
 
     const selectedWeekday = date ? new Date(`${date}T00:00:00`).getDay() : 6;
+    const defaultStart = '09:00';
 
-    setTime('09:00');
-    setEndTime('');
+    setTime(defaultStart);
+    setEndTime(calculateDefaultEndTime(defaultStart)); // Yarım saat sonrası (09:30)
     setTitle('');
     setContent('');
     setTagsText('');
@@ -84,17 +94,26 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
                 event.preventDefault();
                 setSaving(true);
                 try {
-                  await onSave({
-                    date,
+                  const payload: NoteInput = {
+                    date: date!,
                     time,
-                    endTime: endTime.trim() ? endTime : undefined,
                     title: title.trim(),
                     content: content.trim(),
                     tags,
                     recurrence: repeatWeekly ? { type: 'weekly', weekday: repeatWeekday } : { type: 'none' },
                     reminderDaysBefore: remindOneDayBefore ? 1 : 0,
-                  });
+                  };
+
+                  // Firebase undefined değerleri sevmez, bu yüzden endTime varsa ekleyelim
+                  if (endTime.trim()) {
+                    payload.endTime = endTime.trim();
+                  }
+
+                  await onSave(payload);
                   onClose();
+                } catch (error) {
+                  console.error('Not kaydedilirken hata oluştu:', error);
+                  // Hata durumunda modal kapanmaz, sayfa üzerinde hata mesajı gösterilir
                 } finally {
                   setSaving(false);
                 }
@@ -143,7 +162,11 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
                     type="time"
                     required
                     value={time}
-                    onChange={(event) => setTime(event.target.value)}
+                    onChange={(event) => {
+                      const newTime = event.target.value;
+                      setTime(newTime);
+                      setEndTime(calculateDefaultEndTime(newTime));
+                    }}
                     className="h-11 w-full rounded-2xl border border-zinc-300 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-800"
                   />
                 </div>
@@ -163,6 +186,7 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
                   required
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
+                  maxLength={200}
                   className="h-11 w-full rounded-2xl border border-zinc-300 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-800"
                 />
               </div>
@@ -172,6 +196,7 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
                   value={content}
                   onChange={(event) => setContent(event.target.value)}
                   rows={5}
+                  maxLength={5000}
                   className="w-full rounded-2xl border border-zinc-300 px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-800"
                 />
               </div>

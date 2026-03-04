@@ -15,6 +15,7 @@ service cloud.firestore {
              data.date.matches('^\\d{4}-\\d{2}-\\d{2}$') &&
              data.time is string &&
              data.time.matches('^([01]\\d|2[0-3]):[0-5]\\d$') &&
+             (!data.keys().hasAny(['endTime']) || (data.endTime is string && data.endTime.matches('^([01]\\d|2[0-3]):[0-5]\\d$'))) &&
              data.title is string &&
              data.title.size() > 0 &&
              data.title.size() <= 200 &&
@@ -22,6 +23,7 @@ service cloud.firestore {
              data.content.size() <= 5000 &&
              data.tags is list &&
              data.tags.size() <= 20 &&
+             (!data.keys().hasAny(['reminderDaysBefore']) || (data.reminderDaysBefore is int)) &&
              data.createdAt is timestamp &&
              data.updatedAt is timestamp;
     }
@@ -41,6 +43,10 @@ service cloud.firestore {
 
       match /fcmTokens/{tokenId} {
         allow read, create, update, delete: if isOwner(userId);
+      }
+
+      match /notificationLogs/{logId} {
+        allow read: if isOwner(userId);
       }
     }
   }
