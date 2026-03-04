@@ -334,11 +334,15 @@ export default function Home() {
         if (now >= reminderAt && now <= reminderWindowEnd) {
           const reminderKey = `takvim-reminder:before:${uid}:${note.id}:${note.date}`;
           if (!window.localStorage.getItem(reminderKey)) {
-            new Notification('48Takvim Hatırlatma (1 gün önce)', {
-              body: `${note.title} • ${whenLabel}`,
-              tag: reminderKey,
-            });
-            window.localStorage.setItem(reminderKey, String(Date.now()));
+            try {
+              new Notification('48Takvim Hatırlatma (1 gün önce)', {
+                body: `${note.title} • ${whenLabel}`,
+                tag: reminderKey,
+              });
+              window.localStorage.setItem(reminderKey, String(Date.now()));
+            } catch {
+              // Bazı mobil tarayıcılarda Notification constructor runtime'da hata fırlatabilir.
+            }
           }
         }
 
@@ -347,11 +351,15 @@ export default function Home() {
         if (now >= eventAt && now <= dueWindowEnd) {
           const dueKey = `takvim-reminder:due:${uid}:${note.id}:${note.date}`;
           if (!window.localStorage.getItem(dueKey)) {
-            new Notification('48Takvim Hatırlatma (şimdi)', {
-              body: `${note.title} şimdi başlıyor • ${whenLabel}`,
-              tag: dueKey,
-            });
-            window.localStorage.setItem(dueKey, String(Date.now()));
+            try {
+              new Notification('48Takvim Hatırlatma (şimdi)', {
+                body: `${note.title} şimdi başlıyor • ${whenLabel}`,
+                tag: dueKey,
+              });
+              window.localStorage.setItem(dueKey, String(Date.now()));
+            } catch {
+              // Bazı mobil tarayıcılarda Notification constructor runtime'da hata fırlatabilir.
+            }
           }
         }
       }
