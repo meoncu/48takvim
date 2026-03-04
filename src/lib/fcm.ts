@@ -20,33 +20,37 @@ function getFirebaseConfigForSw() {
 }
 
 export async function setupFcmForUser(uid: string): Promise<FcmSetupResult> {
-  if (typeof window === 'undefined') {
-    return { status: 'unsupported' };
-  }
-
-  if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-    return { status: 'unsupported' };
-  }
-
-  const supported = await isSupported();
-  if (!supported) {
-    return { status: 'unsupported' };
-  }
-
-  const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-  if (!vapidKey) {
-    return {
-      status: 'missing-config',
-      errorMessage: 'NEXT_PUBLIC_FIREBASE_VAPID_KEY eksik.',
-    };
-  }
-
-  const permission = await Notification.requestPermission();
-  if (permission !== 'granted') {
-    return { status: 'denied' };
-  }
-
   try {
+    if (typeof window === 'undefined') {
+      return { status: 'unsupported' };
+    }
+
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      return { status: 'unsupported' };
+    }
+
+    if (typeof Notification.requestPermission !== 'function') {
+      return { status: 'unsupported' };
+    }
+
+    const supported = await isSupported();
+    if (!supported) {
+      return { status: 'unsupported' };
+    }
+
+    const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+    if (!vapidKey) {
+      return {
+        status: 'missing-config',
+        errorMessage: 'NEXT_PUBLIC_FIREBASE_VAPID_KEY eksik.',
+      };
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      return { status: 'denied' };
+    }
+
     const registration = await navigator.serviceWorker.register('/sw.js');
 
     const messaging = getMessaging(app);
@@ -72,14 +76,18 @@ export async function setupFcmForUser(uid: string): Promise<FcmSetupResult> {
     );
 
     onMessage(messaging, (payload) => {
-      const title = payload.notification?.title ?? '48Takvim Bildirimi';
-      const body = payload.notification?.body;
-      if (Notification.permission === 'granted') {
-        new Notification(title, {
-          body,
-          icon: '/icons/icon-192.svg',
-          badge: '/icons/icon-192.svg',
-        });
+      try {
+        const title = payload.notification?.title ?? '48Takvim Bildirimi';
+        const body = payload.notification?.body;
+        if (Notification.permission === 'granted') {
+          new Notification(title, {
+            body,
+            icon: '/icons/icon-192.svg',
+            badge: '/icons/icon-192.svg',
+          });
+        }
+      } catch {
+        // Tarayıcı destek farklarından dolayı foreground bildirimi sessizce geçilir.
       }
     });
 
