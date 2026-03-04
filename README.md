@@ -71,38 +71,52 @@ npm run dev
 
 > Not: Bu repoda ikonlar SVG placeholder’dır. İsterseniz CI/CD veya build adımında PNG (`192x192`, `512x512`, `maskable`, `apple-touch-icon`) çıktısı üretip manifest’e ekleyebilirsiniz.
 
-## Arka Plan Bildirimleri (Uygulama Kapalıyken)
+## Arka Plan Bildirimleri (Spark Plan Uyumlu)
 
-Bu repo artık zamanlanmış push için Firebase Functions içerir:
+Bu repo, Firebase Functions kullanmadan Spark plan üzerinde arka plan bildirimi gönderecek şekilde güncellendi.
 
-- Konfig: `[firebase.json](firebase.json)`
-- Functions paket: `[functions/package.json](functions/package.json)`
-- Scheduler fonksiyonu: `[sendScheduledNoteNotifications](functions/src/index.ts:139)`
+Bileşenler:
 
-Fonksiyon davranışı:
+- Admin SDK init: `[src/lib/firebase-admin.ts](src/lib/firebase-admin.ts)`
+- Cron endpoint: `[POST /api/cron/send-notifications](src/app/api/cron/send-notifications/route.ts:343)`
+- GitHub cron job: `[.github/workflows/notify-cron.yml](.github/workflows/notify-cron.yml)`
 
-- Her dakika çalışır (`Europe/Istanbul` timezone).
-- `[users/{uid}/notes](firestore.rules)` altındaki notları tarar.
-- Not saati geldiğinde “şimdi” bildirimi yollar.
-- `reminderDaysBefore > 0` notlar için “X gün önce” bildirimi yollar.
-- `[users/{uid}/fcmTokens/{token}](firestore.rules)` tokenlarına multicast gönderir.
-- Geçersiz tokenları otomatik temizler.
-- Tekrarlı gönderimi önlemek için `[users/{uid}/notificationLogs/{eventId}]` kaydı tutar.
+Akış:
 
-Kurulum / deploy:
+1. GitHub Actions her 5 dakikada bir cron endpoint’ini çağırır.
+2. Endpoint `users/{uid}/notes` ve `users/{uid}/fcmTokens` verilerini okur.
+3. Not zamanı gelen (`due`) ve `reminderDaysBefore` koşuluna uyan (`before`) olayları üretir.
+4. `users/{uid}/notificationLogs/{eventId}` ile idempotent rezervasyon yapar.
+5. FCM ile push gönderir, geçersiz tokenları temizler.
 
-1. Firebase CLI kurun ve giriş yapın.
-2. Proje bağlayın:
-   - `firebase use <PROJECT_ID>`
-3. Functions bağımlılıklarını kurup derleyin:
-   - `cd functions && npm install && npm run build`
-4. Deploy edin:
-   - `firebase deploy --only functions`
+Neden 5 dakika?
 
-Önemli notlar:
+- GitHub Actions minimum 5 dakikalık cron destekler.
+- Endpoint içinde `CRON_LOOKBACK_MINUTES` (varsayılan 6) ile geçmiş dakika penceresi tarandığı için kaçan dakikalar yakalanır.
 
-- Tarayıcıdan token alımı için `NEXT_PUBLIC_FIREBASE_VAPID_KEY` zorunludur (`[setupFcmForUser()](src/lib/fcm.ts:22)`).
-- Web push’in cihazda görünmesi için PWA izinleri açık olmalıdır.
+Gerekli ENV (Vercel):
+
+- `NEXT_PUBLIC_FIREBASE_API_KEY`
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+- `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+- `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+- `NEXT_PUBLIC_FIREBASE_APP_ID`
+- `NEXT_PUBLIC_FIREBASE_VAPID_KEY`
+- `CRON_SECRET` (zorunlu, endpoint koruması)
+- `CRON_LOOKBACK_MINUTES` (opsiyonel, öneri: `6`)
+- `FIREBASE_SERVICE_ACCOUNT_JSON` (zorunlu, Firebase service account JSON string)
+- `FIREBASE_PROJECT_ID` (opsiyonel, override için)
+
+Gerekli GitHub Secrets:
+
+- `APP_BASE_URL` (ör. `https://senin-vercel-domainin.vercel.app`)
+- `CRON_SECRET` (Vercel’dekiyle aynı değer)
+
+Notlar:
+
+- Tarayıcıdan token alımı için `[setupFcmForUser()](src/lib/fcm.ts:22)` içinde `NEXT_PUBLIC_FIREBASE_VAPID_KEY` zorunludur.
+- Web push’in cihazda görünmesi için bildirim izni açık olmalıdır.
 
 ## Build / Production
 
@@ -116,15 +130,21 @@ npm run start
 
 1. Repoyu GitHub’a push et.
 2. Vercel’de “New Project” ile repo bağla.
-3. Environment Variables bölümüne `[.env.local](.env.local)` içeriğini ekle:
-   - `NEXT_PUBLIC_FIREBASE_API_KEY`
-   - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
-   - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
-   - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
-   - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
-   - `NEXT_PUBLIC_FIREBASE_APP_ID`
+3. Environment Variables bölümüne `[.env.local](.env.local)` içeriğini ve sunucu değişkenlerini ekle:
+    - `NEXT_PUBLIC_FIREBASE_API_KEY`
+    - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+    - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+    - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+    - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+    - `NEXT_PUBLIC_FIREBASE_APP_ID`
+    - `NEXT_PUBLIC_FIREBASE_VAPID_KEY`
+    - `CRON_SECRET`
+    - `CRON_LOOKBACK_MINUTES`
+    - `FIREBASE_SERVICE_ACCOUNT_JSON`
+    - `FIREBASE_PROJECT_ID`
 4. Deploy et.
-5. Her push sonrası Vercel CI/CD otomatik tetiklenir.
+5. GitHub repo secret’larına `APP_BASE_URL` ve `CRON_SECRET` ekle.
+6. Her push sonrası Vercel CI/CD ve cron workflow otomatik tetiklenir.
 
 ## Firestore Rule Testleri
 
