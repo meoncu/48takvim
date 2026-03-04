@@ -1,4 +1,4 @@
-# 48Takvim
+# 48Takvim 🌙
 
 Modern, cross-platform takvim/not uygulaması. Next.js App Router + TypeScript + Firebase (Auth/Firestore) + PWA.
 
