@@ -61,7 +61,12 @@ export function subscribeMonthNotes(uid: string, month: Date, onData: (notes: No
             recurrence,
             recurrenceExceptions: Array.isArray(data.recurrenceExceptions) ? data.recurrenceExceptions.filter((v): v is string => typeof v === 'string') : [],
             reminderDaysBefore: typeof data.reminderDaysBefore === 'number' ? data.reminderDaysBefore : 0,
-            attachments: Array.isArray(data.attachments) ? data.attachments : [],
+            attachments: Array.isArray(data.attachments) 
+              ? data.attachments.map(a => ({
+                  ...a,
+                  url: a.url.replace(/https:\/\/.*\.r2\.dev\//, '/api/files/')
+                })) 
+              : [],
             deletedAt: data.deletedAt,
           };
         })
@@ -108,7 +113,12 @@ export function subscribeYearNotes(uid: string, yearDate: Date, onData: (notes: 
             recurrence,
             recurrenceExceptions: Array.isArray(data.recurrenceExceptions) ? data.recurrenceExceptions.filter((v): v is string => typeof v === 'string') : [],
             reminderDaysBefore: typeof data.reminderDaysBefore === 'number' ? data.reminderDaysBefore : 0,
-            attachments: Array.isArray(data.attachments) ? data.attachments : [],
+            attachments: Array.isArray(data.attachments) 
+              ? data.attachments.map(a => ({
+                  ...a,
+                  url: a.url.replace(/https:\/\/.*\.r2\.dev\//, '/api/files/')
+                })) 
+              : [],
             deletedAt: data.deletedAt,
           };
         })
@@ -153,7 +163,12 @@ export function subscribeAllNotes(uid: string, onData: (notes: Note[]) => void, 
             recurrence,
             recurrenceExceptions: Array.isArray(data.recurrenceExceptions) ? data.recurrenceExceptions.filter((v): v is string => typeof v === 'string') : [],
             reminderDaysBefore: typeof data.reminderDaysBefore === 'number' ? data.reminderDaysBefore : 0,
-            attachments: Array.isArray(data.attachments) ? data.attachments : [],
+            attachments: Array.isArray(data.attachments) 
+              ? data.attachments.map(a => ({
+                  ...a,
+                  url: a.url.replace(/https:\/\/.*\.r2\.dev\//, '/api/files/')
+                })) 
+              : [],
             deletedAt: data.deletedAt,
           };
         })
@@ -189,7 +204,12 @@ export function subscribeTrashNotes(uid: string, onData: (notes: Note[]) => void
             tags: Array.isArray(data.tags) ? data.tags : [],
             tz: data.tz,
             reminderDaysBefore: typeof data.reminderDaysBefore === 'number' ? data.reminderDaysBefore : 0,
-            attachments: Array.isArray(data.attachments) ? data.attachments : [],
+            attachments: Array.isArray(data.attachments) 
+              ? data.attachments.map(a => ({
+                  ...a,
+                  url: a.url.replace(/https:\/\/.*\.r2\.dev\//, '/api/files/')
+                })) 
+              : [],
             deletedAt: data.deletedAt,
           };
         })

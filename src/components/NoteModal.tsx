@@ -123,11 +123,10 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
       if (!uploadRes.ok) throw new Error('Dosya yüklenemedi');
 
       // 3. Add to attachments list
-      const publicUrlBase = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "https://pub-eec60fefa25a4b12abac15c90f68e4b2.r2.dev";
       const newAttachment: Attachment = {
         id: Math.random().toString(36).substring(7),
         name: file.name,
-        url: `${publicUrlBase}/${fileKey}`,
+        url: `/api/files/${fileKey}`,
         type: file.type,
         size: file.size,
       };
