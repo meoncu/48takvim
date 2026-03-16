@@ -4,11 +4,13 @@ import { s3Client, R2_BUCKET_NAME } from "@/lib/s3";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
+    const { path } = await params;
     // Path parametrelerini birleştirerek dosya anahtarını (fileKey) oluştur
-    const fileKey = params.path.join("/");
+    // URL decode işlemi gerekebilir (boşluklar vs için)
+    const fileKey = decodeURIComponent(path.join("/"));
 
     const command = new GetObjectCommand({
       Bucket: R2_BUCKET_NAME,
