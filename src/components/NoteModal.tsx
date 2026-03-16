@@ -338,7 +338,11 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
                           <span className="max-w-[120px] truncate text-xs font-medium">{file.name}</span>
                           <button
                             type="button"
-                            onClick={() => removeAttachment(file.id)}
+                            onClick={() => {
+                              if (window.confirm('Bu dosyayı silmek istediğinizden emin misiniz?')) {
+                                removeAttachment(file.id);
+                              }
+                            }}
                             className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-200 text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100 dark:bg-zinc-700 dark:text-zinc-400"
                           >
                             <X className="h-3 w-3" />
