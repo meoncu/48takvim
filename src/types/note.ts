@@ -28,6 +28,7 @@ export type Note = {
   recurrenceExceptions?: string[]; // YYYY-MM-DD, sadece o tekrar örneğini atla
   reminderDaysBefore?: number;
   attachments?: Attachment[];
+  deletedAt?: string; // ISO string, if present the note is in "Trash"
 };
 
 export type NoteInput = {
@@ -42,4 +43,5 @@ export type NoteInput = {
   recurrenceExceptions?: string[];
   reminderDaysBefore?: number;
   attachments?: Attachment[];
+  deletedAt?: string;
 };

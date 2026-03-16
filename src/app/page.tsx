@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { addDays, addMonths, endOfMonth, endOfYear, format, parseISO, startOfMonth, startOfYear } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, CalendarRange, ChevronLeft, ChevronRight, Filter, Flag, LogOut, Search, StickyNote, User } from 'lucide-react';
+import { CalendarDays, CalendarRange, ChevronLeft, ChevronRight, Filter, Flag, LogOut, RotateCcw, Search, StickyNote, Trash2, User } from 'lucide-react';
 import { CalendarGrid } from '@/components/CalendarGrid';
 import { DayDetailPanel } from '@/components/DayDetailPanel';
 import { InstallPWAButton } from '@/components/InstallPWAButton';
@@ -12,7 +12,7 @@ import { MonthYearPicker } from '@/components/MonthYearPicker';
 import { NoteModal } from '@/components/NoteModal';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { buildMonthOptions, toDateKey } from '@/lib/date';
-import { createNote, removeNote, subscribeAllNotes, updateNote } from '@/lib/notes';
+import { createNote, permanentlyRemoveNote, removeNote, restoreNote, subscribeAllNotes, subscribeTrashNotes, updateNote } from '@/lib/notes';
 import { signInWithGoogle, signOutUser, subscribeAuthState } from '@/lib/firebase';
 import { buildSpecialDays } from '@/lib/specialDays';
 import { setupFcmForUser } from '@/lib/fcm';
@@ -88,7 +88,9 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [allNotes, setAllNotes] = useState<Note[]>([]);
+  const [trashNotes, setTrashNotes] = useState<Note[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(toDateKey(new Date()));
+  const [showTrashScreen, setShowTrashScreen] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
@@ -143,6 +145,22 @@ export default function Home() {
       },
       () => {
         setFeedback('Tüm notlar alınırken hata oluştu.');
+      }
+    );
+
+    return unsubscribe;
+  }, [uid]);
+
+  useEffect(() => {
+    if (!uid) return;
+
+    const unsubscribe = subscribeTrashNotes(
+      uid,
+      (items) => {
+        setTrashNotes(items);
+      },
+      () => {
+        setFeedback('Çöp kutusu alınırken hata oluştu.');
       }
     );
 
@@ -587,6 +605,75 @@ export default function Home() {
         </section>
       )}
 
+      {showTrashScreen && (
+        <section className="space-y-4">
+          <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-3xl border border-red-100 bg-white p-4 shadow-[0_20px_40px_rgba(239,68,68,0.08)]">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-lg font-bold text-red-900">Çöp Kutusu</h2>
+              <span className="text-xs font-medium text-red-500">{trashNotes.length} kayıt</span>
+            </div>
+
+            <div className="max-h-[58vh] space-y-2 overflow-y-auto pr-1">
+              {trashNotes.map((note) => (
+                <div key={note.id} className="group rounded-2xl border border-red-50 bg-red-50/30 p-3 transition-colors hover:bg-red-50/50">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-red-600">{format(parseISO(note.date), 'd MMMM', { locale: tr })}</span>
+                        <span className="text-[10px] text-zinc-400">{note.time}</span>
+                      </div>
+                      <h3 className="mt-0.5 text-sm font-semibold text-zinc-900">{note.title}</h3>
+                      <p className="mt-1 line-clamp-2 text-xs text-zinc-600">{note.content}</p>
+                    </div>
+                    <div className="flex flex-col gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                      <button
+                        onClick={async () => {
+                          await restoreNote(uid, note.id);
+                          setFeedback('Not geri yüklendi.');
+                        }}
+                        className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm transition hover:bg-emerald-50"
+                        title="Geri Yükle"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (window.confirm('Bu not kalıcı olarak silinecek. Bu işlem geri alınamaz. Emin misiniz?')) {
+                            await permanentlyRemoveNote(uid, note.id);
+                            setFeedback('Not kalıcı olarak silindi.');
+                          }
+                        }}
+                        className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-red-600 shadow-sm transition hover:bg-red-50"
+                        title="Kalıcı Olarak Sil"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {trashNotes.length === 0 ? (
+                <div className="flex min-h-[160px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-red-100 bg-red-50/10 p-6 text-center">
+                  <div className="mb-3 rounded-full bg-red-50 p-3">
+                    <Trash2 className="h-6 w-6 text-red-200" />
+                  </div>
+                  <p className="text-sm font-medium text-red-400">Çöp kutusu boş.</p>
+                  <p className="mt-1 text-xs text-red-300">Silinen notlar burada görünür.</p>
+                </div>
+              ) : null}
+            </div>
+            
+            <button
+              onClick={() => setShowTrashScreen(false)}
+              className="mt-4 w-full rounded-2xl bg-zinc-100 py-3 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-200"
+            >
+              Kapat
+            </button>
+          </motion.div>
+        </section>
+      )}
+
       <NoteModal
         open={modalOpen}
         date={selectedDate}
@@ -628,10 +715,13 @@ export default function Home() {
           <li className="grid place-items-center">
             <button
               type="button"
-              onClick={() => setShowNotesListScreen(false)}
+              onClick={() => {
+                setShowNotesListScreen(false);
+                setShowTrashScreen(false);
+              }}
               className={[
                 'grid h-9 w-9 place-items-center rounded-full transition',
-                showNotesListScreen ? 'text-slate-500 hover:bg-slate-100' : 'bg-indigo-500 text-white',
+                (!showNotesListScreen && !showTrashScreen) ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:bg-slate-100',
               ].join(' ')}
               title="Takvim"
             >
@@ -639,12 +729,28 @@ export default function Home() {
             </button>
           </li>
           <li className="grid place-items-center">
-            <Search className="h-4 w-4" />
+            <button
+              type="button"
+              onClick={() => {
+                setShowTrashScreen((prev) => !prev);
+                setShowNotesListScreen(false);
+              }}
+              className={[
+                'grid h-9 w-9 place-items-center rounded-full transition',
+                showTrashScreen ? 'bg-red-500 text-white' : 'text-slate-500 hover:bg-slate-100',
+              ].join(' ')}
+              title="Çöp Kutusu"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
           </li>
           <li className="grid place-items-center">
             <button
               type="button"
-              onClick={() => setShowNotesListScreen(true)}
+              onClick={() => {
+                setShowNotesListScreen(true);
+                setShowTrashScreen(false);
+              }}
               className={[
                 'grid h-9 w-9 place-items-center rounded-full transition',
                 showNotesListScreen ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:bg-slate-100',
