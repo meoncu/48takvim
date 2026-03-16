@@ -343,13 +343,15 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
                       return (
                         <div key={file.id} className="group relative flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-2 py-2 transition-all hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-800/50">
                           {isImage ? (
-                            <div className="relative h-8 w-8 overflow-hidden rounded-lg">
-                              <Image 
+                            <div className="relative h-8 w-8 overflow-hidden rounded-lg bg-zinc-100">
+                              <img 
                                 src={localPreviews[file.id] || file.url} 
                                 alt={file.name} 
-                                fill 
-                                className="object-cover" 
-                                unoptimized
+                                className="h-full w-full object-cover" 
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
                               />
                             </div>
                           ) : (

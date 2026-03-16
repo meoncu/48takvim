@@ -73,13 +73,17 @@ export function DayDetailPanel({ date, notes, onAdd, onEdit, onDelete }: DayDeta
                               className="block"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <div className="relative aspect-square w-24">
-                                <Image
+                              <div className="relative aspect-square w-24 bg-zinc-100">
+                                <img
                                   src={file.url}
                                   alt={file.name}
-                                  fill
-                                  className="object-cover transition-transform group-hover:scale-110"
-                                  unoptimized // R2 Optimization is done during upload
+                                  className="h-full w-full object-cover transition-transform group-hover:scale-110"
+                                  loading="lazy"
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => {
+                                    // Hata durumunda resmi gizle veya ikon göster
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                  }}
                                 />
                                 <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
                                   <ExternalLink className="h-5 w-5 text-white" />
