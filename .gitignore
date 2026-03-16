@@ -46,3 +46,6 @@ next-env.d.ts
 *-firebase-adminsdk-*.json
 firebase-debug.log
 *.log
+
+.vercel
+.env*.local

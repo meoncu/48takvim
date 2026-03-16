@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { Note, NoteInput } from '@/types/note';
+import type { Note, NoteInput, Attachment } from '@/types/note';
+import { Paperclip, X, FileIcon, Loader2 } from 'lucide-react';
+import { auth } from '@/lib/firebase';
 
 type NoteModalProps = {
   open: boolean;
@@ -22,6 +24,8 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
   const [repeatWeekday, setRepeatWeekday] = useState<number>(6);
   const [remindOneDayBefore, setRemindOneDayBefore] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   // Zaman hesaplama yardımcısı
   const calculateDefaultEndTime = (startTime: string) => {
@@ -44,6 +48,7 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
       setRepeatWeekly(editingNote.recurrence?.type === 'weekly');
       setRepeatWeekday(editingNote.recurrence?.type === 'weekly' ? editingNote.recurrence.weekday : new Date(`${editingNote.date}T00:00:00`).getDay());
       setRemindOneDayBefore((editingNote.reminderDaysBefore ?? 0) > 0);
+      setAttachments(editingNote.attachments ?? []);
       return;
     }
 
@@ -58,7 +63,60 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
     setRepeatWeekly(false);
     setRepeatWeekday(selectedWeekday);
     setRemindOneDayBefore(true);
+    setAttachments([]);
   }, [open, editingNote, date]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !auth.currentUser) return;
+
+    setUploading(true);
+    try {
+      // 1. Get signed URL from our API
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          userId: auth.currentUser.uid,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Yükleme URL\'i alınamadı');
+      const { uploadUrl, fileKey } = await res.json();
+
+      // 2. Upload directly to R2
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type },
+      });
+
+      if (!uploadRes.ok) throw new Error('Dosya yüklenemedi');
+
+      // 3. Add to attachments list
+      const publicUrlBase = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "https://pub-eec60fefa25a4b12abac15c90f68e4b2.r2.dev";
+      const newAttachment: Attachment = {
+        id: Math.random().toString(36).substring(7),
+        name: file.name,
+        url: `${publicUrlBase}/${fileKey}`,
+        type: file.type,
+        size: file.size,
+      };
+
+      setAttachments([...attachments, newAttachment]);
+    } catch (error) {
+      console.error('Yükleme hatası:', error);
+      alert('Dosya yüklenirken bir hata oluştu.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments(attachments.filter(a => a.id !== id));
+  };
 
   const tags = useMemo(
     () =>
@@ -102,6 +160,7 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
                     tags,
                     recurrence: repeatWeekly ? { type: 'weekly', weekday: repeatWeekday } : { type: 'none' },
                     reminderDaysBefore: remindOneDayBefore ? 1 : 0,
+                    attachments: attachments.length > 0 ? attachments : undefined,
                   };
 
                   // Firebase undefined değerleri sevmez, bu yüzden endTime varsa ekleyelim
@@ -220,6 +279,39 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
                   />
                   1 gün önce tarayıcı bildirimi gönder
                 </label>
+              </div>
+
+              <div>
+                <label className="mb-2 flex items-center justify-between text-sm">
+                  <span>Dosya Ekleri</span>
+                  <label className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                    {uploading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Paperclip className="h-3.5 w-3.5" />
+                    )}
+                    {uploading ? 'Yükleniyor...' : 'Dosya Ekle'}
+                    <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} />
+                  </label>
+                </label>
+                
+                {attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {attachments.map((file) => (
+                      <div key={file.id} className="group relative flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 transition-all hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-800/50">
+                        <FileIcon className="h-4 w-4 text-zinc-500" />
+                        <span className="max-w-[120px] truncate text-xs font-medium">{file.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(file.id)}
+                          className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-200 text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100 dark:bg-zinc-700 dark:text-zinc-400"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="mt-5 flex justify-end gap-2">

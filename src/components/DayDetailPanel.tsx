@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Note } from '@/types/note';
+import { Paperclip } from 'lucide-react';
 
 type DayDetailPanelProps = {
   date: string | null;
@@ -52,6 +53,24 @@ export function DayDetailPanel({ date, notes, onAdd, onEdit, onDelete }: DayDeta
                       <span key={tag} className="rounded-md bg-white px-2 py-0.5 text-xs text-indigo-600">
                         #{tag}
                       </span>
+                    ))}
+                  </div>
+                ) : null}
+
+                {note.attachments && note.attachments.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {note.attachments.map((file) => (
+                      <a
+                        key={file.id}
+                        href={file.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-zinc-600 transition-all hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Paperclip className="h-3 w-3" />
+                        <span className="max-w-[100px] truncate">{file.name}</span>
+                      </a>
                     ))}
                   </div>
                 ) : null}

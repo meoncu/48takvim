@@ -48,6 +48,7 @@ export function subscribeMonthNotes(uid: string, month: Date, onData: (notes: No
             recurrence,
             recurrenceExceptions: Array.isArray(data.recurrenceExceptions) ? data.recurrenceExceptions.filter((v): v is string => typeof v === 'string') : [],
             reminderDaysBefore: typeof data.reminderDaysBefore === 'number' ? data.reminderDaysBefore : 0,
+            attachments: Array.isArray(data.attachments) ? data.attachments : [],
           };
         })
         .sort((a, b) => {
@@ -92,6 +93,7 @@ export function subscribeYearNotes(uid: string, yearDate: Date, onData: (notes: 
             recurrence,
             recurrenceExceptions: Array.isArray(data.recurrenceExceptions) ? data.recurrenceExceptions.filter((v): v is string => typeof v === 'string') : [],
             reminderDaysBefore: typeof data.reminderDaysBefore === 'number' ? data.reminderDaysBefore : 0,
+            attachments: Array.isArray(data.attachments) ? data.attachments : [],
           };
         })
         .sort((a, b) => {
@@ -134,6 +136,7 @@ export function subscribeAllNotes(uid: string, onData: (notes: Note[]) => void, 
             recurrence,
             recurrenceExceptions: Array.isArray(data.recurrenceExceptions) ? data.recurrenceExceptions.filter((v): v is string => typeof v === 'string') : [],
             reminderDaysBefore: typeof data.reminderDaysBefore === 'number' ? data.reminderDaysBefore : 0,
+            attachments: Array.isArray(data.attachments) ? data.attachments : [],
           };
         })
         .sort((a, b) => {

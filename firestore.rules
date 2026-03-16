@@ -24,6 +24,7 @@ service cloud.firestore {
              data.tags is list &&
              data.tags.size() <= 20 &&
              (!data.keys().hasAny(['reminderDaysBefore']) || (data.reminderDaysBefore is int)) &&
+             (!data.keys().hasAny(['attachments']) || (data.attachments is list)) &&
              data.createdAt is timestamp &&
              data.updatedAt is timestamp;
     }
