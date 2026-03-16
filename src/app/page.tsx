@@ -11,6 +11,7 @@ import { InstallPWAButton } from '@/components/InstallPWAButton';
 import { MonthYearPicker } from '@/components/MonthYearPicker';
 import { NoteModal } from '@/components/NoteModal';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { R2StorageManager } from '@/components/StorageManager';
 import { buildMonthOptions, toDateKey } from '@/lib/date';
 import { createNote, permanentlyRemoveNote, removeNote, restoreNote, subscribeAllNotes, subscribeTrashNotes, updateNote } from '@/lib/notes';
 import { signInWithGoogle, signOutUser, subscribeAuthState } from '@/lib/firebase';
@@ -91,6 +92,7 @@ export default function Home() {
   const [trashNotes, setTrashNotes] = useState<Note[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(toDateKey(new Date()));
   const [showTrashScreen, setShowTrashScreen] = useState(false);
+  const [showStorageManager, setShowStorageManager] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
@@ -674,6 +676,12 @@ export default function Home() {
         </section>
       )}
 
+      <AnimatePresence>
+        {showStorageManager && (
+          <R2StorageManager onClose={() => setShowStorageManager(false)} />
+        )}
+      </AnimatePresence>
+
       <NoteModal
         open={modalOpen}
         date={selectedDate}
@@ -761,7 +769,16 @@ export default function Home() {
             </button>
           </li>
           <li className="grid place-items-center">
-            <User className="h-4 w-4" />
+            <button
+              onClick={() => setShowStorageManager(prev => !prev)}
+              className={[
+                'grid h-9 w-9 place-items-center rounded-full transition',
+                showStorageManager ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:bg-slate-100',
+              ].join(' ')}
+              title="Depo Yönetimi"
+            >
+              <User className="h-4 w-4" />
+            </button>
           </li>
         </ul>
       </nav>
