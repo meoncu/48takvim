@@ -145,7 +145,10 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
     }
   };
 
-  const removeAttachment = (id: string) => {
+  const removeAttachment = async (id: string) => {
+    const attachment = attachments.find(a => a.id === id);
+    if (!attachment) return;
+
     // Revoke the local URL if it exists to free memory
     if (localPreviews[id]) {
       URL.revokeObjectURL(localPreviews[id]);
@@ -155,6 +158,23 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
         return next;
       });
     }
+
+    // Remove from storage
+    try {
+      const urlParts = attachment.url.split('/api/files/');
+      const fileKey = urlParts.length > 1 ? urlParts[1] : attachment.url.split('/').pop();
+      
+      if (fileKey && !fileKey.startsWith('blob:')) {
+        await fetch('/api/delete-file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileKey }),
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting file from storage:', error);
+    }
+
     setAttachments(attachments.filter(a => a.id !== id));
   };
 

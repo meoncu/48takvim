@@ -639,7 +639,7 @@ export default function Home() {
                       <button
                         onClick={async () => {
                           if (window.confirm('Bu not kalıcı olarak silinecek. Bu işlem geri alınamaz. Emin misiniz?')) {
-                            await permanentlyRemoveNote(uid, note.id);
+                            await permanentlyRemoveNote(uid, note.id, note.attachments);
                             setFeedback('Not kalıcı olarak silindi.');
                           }
                         }}

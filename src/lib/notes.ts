@@ -12,7 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { monthBounds, yearBounds } from '@/lib/date';
-import type { Note, NoteInput, Recurrence } from '@/types/note';
+import type { Attachment, Note, NoteInput, Recurrence } from '@/types/note';
 
 function userNotesCollection(uid: string) {
   return collection(db, 'users', uid, 'notes');
@@ -253,6 +253,26 @@ export async function restoreNote(uid: string, noteId: string) {
   });
 }
 
-export async function permanentlyRemoveNote(uid: string, noteId: string) {
+export async function permanentlyRemoveNote(uid: string, noteId: string, attachments: Attachment[] = []) {
+  // Delete attachments from storage first
+  for (const attachment of attachments) {
+    try {
+      // Extract file key from URL (which might be Proxy URL /api/files/key or Direct URL)
+      const urlParts = attachment.url.split('/api/files/');
+      const fileKey = urlParts.length > 1 ? urlParts[1] : attachment.url.split('/').pop();
+      
+      if (fileKey) {
+        await fetch('/api/delete-file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileKey }),
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting attachment during note removal:', error);
+    }
+  }
+
+  // Then delete the document from Firestore
   await deleteDoc(doc(db, 'users', uid, 'notes', noteId));
 }
