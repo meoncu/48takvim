@@ -117,7 +117,11 @@ export function DayDetailPanel({ date, notes, onAdd, onEdit, onDelete }: DayDeta
                 </button>
                 <button
                   type="button"
-                  onClick={() => void onDelete(note)}
+                  onClick={() => {
+                    if (window.confirm('Bu notu silmek istediğinizden emin misiniz?')) {
+                      void onDelete(note);
+                    }
+                  }}
                   className="min-h-9 rounded-xl border border-red-200 px-3 text-xs font-semibold text-red-600 transition hover:bg-red-50"
                 >
                   Sil
