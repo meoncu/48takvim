@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Note } from '@/types/note';
-import { Paperclip } from 'lucide-react';
+import { Paperclip, ExternalLink } from 'lucide-react';
+import Image from 'next/image';
 
 type DayDetailPanelProps = {
   date: string | null;
@@ -59,19 +60,50 @@ export function DayDetailPanel({ date, notes, onAdd, onEdit, onDelete }: DayDeta
 
                 {note.attachments && note.attachments.length > 0 ? (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {note.attachments.map((file) => (
-                      <a
-                        key={file.id}
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-zinc-600 transition-all hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Paperclip className="h-3 w-3" />
-                        <span className="max-w-[100px] truncate">{file.name}</span>
-                      </a>
-                    ))}
+                    {note.attachments.map((file) => {
+                      const isImage = file.type.startsWith('image/');
+                      
+                      if (isImage) {
+                        return (
+                          <div key={file.id} className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800">
+                            <a
+                              href={file.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="relative aspect-square w-24">
+                                <Image
+                                  src={file.url}
+                                  alt={file.name}
+                                  fill
+                                  className="object-cover transition-transform group-hover:scale-110"
+                                  unoptimized // R2 Optimization is done during upload
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
+                                  <ExternalLink className="h-5 w-5 text-white" />
+                                </div>
+                              </div>
+                            </a>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <a
+                          key={file.id}
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-zinc-600 transition-all hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Paperclip className="h-3 w-3" />
+                          <span className="max-w-[100px] truncate">{file.name}</span>
+                        </a>
+                      );
+                    })}
                   </div>
                 ) : null}
               </div>
