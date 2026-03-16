@@ -18,6 +18,19 @@ function userNotesCollection(uid: string) {
   return collection(db, 'users', uid, 'notes');
 }
 
+/**
+ * Removes undefined values from an object to prevent Firestore errors.
+ */
+function clean<T extends object>(obj: T): T {
+  const result = { ...obj };
+  (Object.keys(result) as Array<keyof T>).forEach((key) => {
+    if (result[key] === undefined) {
+      delete result[key];
+    }
+  });
+  return result;
+}
+
 export function subscribeMonthNotes(uid: string, month: Date, onData: (notes: Note[]) => void, onError: (error: Error) => void) {
   const { start, end } = monthBounds(month);
 
@@ -190,19 +203,19 @@ export function subscribeTrashNotes(uid: string, onData: (notes: Note[]) => void
 }
 
 export async function createNote(uid: string, input: NoteInput) {
-  await addDoc(userNotesCollection(uid), {
+  await addDoc(userNotesCollection(uid), clean({
     ...input,
     deletedAt: null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  });
+  }));
 }
 
 export async function updateNote(uid: string, noteId: string, input: Partial<NoteInput>) {
-  await updateDoc(doc(db, 'users', uid, 'notes', noteId), {
+  await updateDoc(doc(db, 'users', uid, 'notes', noteId), clean({
     ...input,
     updatedAt: serverTimestamp(),
-  });
+  }));
 }
 
 export async function removeNote(uid: string, noteId: string) {

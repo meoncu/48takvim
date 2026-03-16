@@ -181,7 +181,7 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
                     tags,
                     recurrence: repeatWeekly ? { type: 'weekly', weekday: repeatWeekday } : { type: 'none' },
                     reminderDaysBefore: remindOneDayBefore ? 1 : 0,
-                    attachments: attachments.length > 0 ? attachments : undefined,
+                    attachments: attachments.length > 0 ? attachments : [],
                   };
 
                   // Firebase undefined değerleri sevmez, bu yüzden endTime varsa ekleyelim
