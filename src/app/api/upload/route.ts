@@ -12,7 +12,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const fileKey = `uploads/${userId}/${uuidv4()}-${fileName}`;
+    // Sanitize filename: remove special chars and replace spaces with dashes
+    const safeFileName = fileName
+      .replace(/[^a-z0-9.]/gi, '-')
+      .replace(/-+/g, '-')
+      .toLowerCase();
+
+    const fileKey = `uploads/${userId}/${Date.now()}-${safeFileName}`;
     
     const command = new PutObjectCommand({
       Bucket: R2_BUCKET_NAME,
