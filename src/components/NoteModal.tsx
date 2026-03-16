@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { Note, NoteInput, Attachment } from '@/types/note';
 import { Paperclip, X, FileIcon, Loader2 } from 'lucide-react';
 import { auth } from '@/lib/firebase';
+import imageCompression from 'browser-image-compression';
 
 type NoteModalProps = {
   open: boolean;
@@ -67,11 +68,30 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
   }, [open, editingNote, date]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    let file = e.target.files?.[0];
     if (!file || !auth.currentUser) return;
 
     setUploading(true);
     try {
+      // Resim sıkıştırma (Sadece resim dosyaları için)
+      if (file.type.startsWith('image/')) {
+        const options = {
+          maxSizeMB: 1, // Maksimum 1MB
+          maxWidthOrHeight: 1920, // Maksimum 1920px genişlik/yükseklik
+          useWebWorker: true,
+        };
+        try {
+          const compressedBlob = await imageCompression(file, options);
+          // Blob'u tekrar File nesnesine dönüştür (orijinal ismi koruyarak)
+          file = new File([compressedBlob], file.name, {
+            type: file.type,
+            lastModified: Date.now(),
+          });
+        } catch (compressionError) {
+          console.warn('Resim sıkıştırılamadı, orijinal dosya yükleniyor:', compressionError);
+        }
+      }
+
       // 1. Get signed URL from our API
       const res = await fetch('/api/upload', {
         method: 'POST',
