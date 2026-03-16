@@ -27,6 +27,7 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
   const [remindOneDayBefore, setRemindOneDayBefore] = useState(true);
   const [saving, setSaving] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [localPreviews, setLocalPreviews] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
 
   // Zaman hesaplama yardımcısı
@@ -39,7 +40,12 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
   };
 
   useEffect(() => {
-    if (!open) return;
+    // Clean up local previews when closing
+    if (!open) {
+      Object.values(localPreviews).forEach(url => URL.revokeObjectURL(url));
+      setLocalPreviews({});
+      return;
+    }
 
     if (editingNote) {
       setTime(editingNote.time);
@@ -126,6 +132,11 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
         size: file.size,
       };
 
+      if (file.type.startsWith('image/')) {
+        const localUrl = URL.createObjectURL(file);
+        setLocalPreviews(prev => ({ ...prev, [newAttachment.id]: localUrl }));
+      }
+
       setAttachments([...attachments, newAttachment]);
     } catch (error) {
       console.error('Yükleme hatası:', error);
@@ -136,6 +147,15 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
   };
 
   const removeAttachment = (id: string) => {
+    // Revoke the local URL if it exists to free memory
+    if (localPreviews[id]) {
+      URL.revokeObjectURL(localPreviews[id]);
+      setLocalPreviews(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
     setAttachments(attachments.filter(a => a.id !== id));
   };
 
@@ -325,7 +345,7 @@ export function NoteModal({ open, date, editingNote, onClose, onSave }: NoteModa
                           {isImage ? (
                             <div className="relative h-8 w-8 overflow-hidden rounded-lg">
                               <Image 
-                                src={file.url} 
+                                src={localPreviews[file.id] || file.url} 
                                 alt={file.name} 
                                 fill 
                                 className="object-cover" 
